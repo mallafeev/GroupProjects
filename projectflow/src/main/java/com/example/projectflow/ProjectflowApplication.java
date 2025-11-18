@@ -10,4 +10,9 @@ public class ProjectflowApplication {
 		SpringApplication.run(ProjectflowApplication.class, args);
 	}
 
+	@Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
 }
