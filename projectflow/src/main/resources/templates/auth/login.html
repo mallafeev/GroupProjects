@@ -1,26 +1,31 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="UTF-8" />
   <title>Вход в ProjectFlow</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
 
   <header class="header">
     <div class="logo">ProjectFlow</div>
     <nav class="nav">
-      <a href="index.html">Главная</a>
-      <a href="login.html" class="active">Вход</a>
+      <a href="/">Главная</a>
+      <a href="/login" class="active">Вход</a>
+      <a href="/register">Регистрация</a>
     </nav>
   </header>
 
   <main class="main auth-page">
     <div class="auth-container">
       <h2>Вход в систему</h2>
-      <form>
+
+      <div th:if="${error}" class="error-message" th:text="${error}"></div>
+
+      <form action="/login" method="post">
+        <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}" />
         <div class="form-group">
-          <label for="login">Email или логин</label>
+          <label for="login">Логин</label>
           <input type="text" id="login" name="login" required />
         </div>
         <div class="form-group">
@@ -29,7 +34,8 @@
         </div>
         <button type="submit" class="btn btn-primary">Войти</button>
       </form>
-      <p>Нет аккаунта? <a href="register.html">Зарегистрироваться</a></p>
+
+      <p>Нет аккаунта? <a href="/register">Зарегистрироваться</a></p>
     </div>
   </main>
 

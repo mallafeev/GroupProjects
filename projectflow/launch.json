@@ -1,0 +1,32 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Launch Spring Boot Application",
+            "request": "launch",
+            "mainClass": "com.example.projectflow.ProjectflowApplication",
+            "projectName": "projectflow",
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "args": "",
+            "vmArgs": "",
+            "env": {},
+            "stopOnEntry": false,
+            "showHex": false,
+            "stepFilters": {
+                "classNameFilters": [],
+                "skipSynthetics": true,
+                "skipStaticInitializers": false,
+                "skipConstructors": false
+            },
+            "sourceFilters": [],
+            "logging": {
+                "module": false,
+                "category": {
+                    "level": "INFO"
+                }
+            }
+        }
+    ]
+}
