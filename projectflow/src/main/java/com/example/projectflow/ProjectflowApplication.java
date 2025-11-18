@@ -6,13 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class ProjectflowApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(ProjectflowApplication.class, args);
-	}
-
-	@Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+    public static void main(String[] args) {
+        SpringApplication.run(ProjectflowApplication.class, args);
     }
-
 }

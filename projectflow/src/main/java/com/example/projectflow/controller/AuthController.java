@@ -22,8 +22,8 @@ public class AuthController {
 
     @PostMapping("/register")
     public String register(@ModelAttribute User user,
-                           @RequestParam String confirmPassword,
-                           Model model, HttpSession session) {
+                        @RequestParam String confirmPassword,
+                        Model model, HttpSession session) {
 
         if (!user.getPasswordHash().equals(confirmPassword)) {
             model.addAttribute("error", "Пароли не совпадают");
