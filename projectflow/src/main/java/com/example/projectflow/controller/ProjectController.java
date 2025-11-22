@@ -2,6 +2,9 @@ package com.example.projectflow.controller;
 
 import com.example.projectflow.model.Project;
 import com.example.projectflow.model.User;
+import com.example.projectflow.model.Task;
+import com.example.projectflow.service.TaskService;
+import com.example.projectflow.model.TaskStatus;
 import com.example.projectflow.service.ProjectMemberService;
 import com.example.projectflow.service.ProjectService;
 import com.example.projectflow.service.UserService;
@@ -24,6 +27,9 @@ public class ProjectController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private TaskService taskService;
 
     @GetMapping("/")
     public String index(Model model) {
@@ -80,11 +86,15 @@ public class ProjectController {
 
         List<User> members = projectMemberService.getProjectMembers(id);
         boolean isOwner = projectMemberService.isOwner(id, userId);
+        List<Task> tasks = taskService.getTasksByProjectId(id); // ← ЗАГРУЖАЕМ ЗАДАЧИ
 
         model.addAttribute("project", project);
         model.addAttribute("members", members);
         model.addAttribute("isOwner", isOwner);
+        model.addAttribute("currentUserId", userId); // ← Нужно для шаблона
         model.addAttribute("allUsers", userService.getAllUsers());
+        model.addAttribute("tasks", tasks); // ← ПЕРЕДАЁМ ЗАДАЧИ В ШАБЛОН
+
         return "project-detail";
     }
 
@@ -168,4 +178,60 @@ public class ProjectController {
         projectService.deleteProject(id);
         return "redirect:/projects";
     }
+
+    @PostMapping("/projects/{id}")
+    public String handleProjectPage(@PathVariable Long id,
+                                    @RequestParam(required = false) String action,
+                                    @RequestParam(required = false) String taskName,
+                                    @RequestParam(required = false) Long assignedMemberId,
+                                    @RequestParam(required = false) Long taskId,
+                                    HttpSession session, Model model) {
+    Long userId = (Long) session.getAttribute("userId");
+    if (userId == null) {
+        return "redirect:/login";
+    }
+
+    if ("createTask".equals(action) && taskName != null && assignedMemberId != null) {
+        if (!projectMemberService.isOwner(id, userId)) {
+            return "redirect:/projects/" + id;
+        }
+        taskService.createTask(taskName, id, assignedMemberId);
+        return "redirect:/projects/" + id;
+    }
+
+    if ("markDone".equals(action) && taskId != null) {
+        Task task = taskService.findById(taskId);
+        Long assignedUserId = task.getAssignedMember().getUser().getId();
+
+        if (!projectMemberService.isOwner(id, userId) && !assignedUserId.equals(userId)) {
+            return "redirect:/projects/" + id;
+        }
+
+        taskService.updateTaskStatus(taskId, TaskStatus.DONE);
+        return "redirect:/projects/" + id;
+    }
+
+    if ("markInProgress".equals(action) && taskId != null) {
+        Task task = taskService.findById(taskId);
+        Long assignedUserId = task.getAssignedMember().getUser().getId();
+
+        if (!projectMemberService.isOwner(id, userId) && !assignedUserId.equals(userId)) {
+            return "redirect:/projects/" + id;
+        }
+
+        taskService.updateTaskStatus(taskId, TaskStatus.IN_PROGRESS);
+        return "redirect:/projects/" + id;
+    }
+
+    if ("deleteTask".equals(action) && taskId != null) {
+        if (!projectMemberService.isOwner(id, userId)) {
+            return "redirect:/projects/" + id;
+        }
+
+        taskService.deleteTask(taskId);
+        return "redirect:/projects/" + id;
+    }
+
+    return "redirect:/projects/" + id;
+}
 }
