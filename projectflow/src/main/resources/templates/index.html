@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <title>ProjectFlow — Все проекты</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+  <header class="header">
+    <div class="logo">ProjectFlow</div>
+    <nav class="nav">
+      <a href="/" class="active">Все проекты</a>
+      <a href="/projects">Мои проекты</a>
+      <a href="/login">Вход</a>
+      <a href="/register">Регистрация</a>
+    </nav>
+  </header>
+
+  <main class="main">
+    <h1>Все проекты</h1>
+
+    <div class="projects-grid">
+      <div class="project-card" th:each="project : ${projects}">
+        <h3><a th:href="@{/projects/{id}(id=${project.id})}" th:text="${project.name}"></a></h3>
+        <p th:text="${project.description}"></p>
+        <span class="status">Автор: <span th:text="${project.ownerId}"></span></span>
+      </div>
+    </div>
+  </main>
+
+</body>
+</html>
