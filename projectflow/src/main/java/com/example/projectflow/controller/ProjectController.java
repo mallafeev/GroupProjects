@@ -1,7 +1,10 @@
 package com.example.projectflow.controller;
 
 import com.example.projectflow.model.Project;
+import com.example.projectflow.model.User;
+import com.example.projectflow.service.ProjectMemberService;
 import com.example.projectflow.service.ProjectService;
+import com.example.projectflow.service.UserService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -16,6 +19,12 @@ public class ProjectController {
     @Autowired
     private ProjectService projectService;
 
+    @Autowired
+    private ProjectMemberService projectMemberService;
+
+    @Autowired
+    private UserService userService;
+
     @GetMapping("/")
     public String index(Model model) {
         List<Project> allProjects = projectService.getAllProjects();
@@ -23,17 +32,19 @@ public class ProjectController {
         return "index";
     }
 
-    @GetMapping("/projects")
+   @GetMapping("/projects")
     public String myProjects(HttpSession session, Model model) {
         Long userId = (Long) session.getAttribute("userId");
         if (userId == null) {
             return "redirect:/login";
         }
 
-        List<Project> userProjects = projectService.getProjectsByOwnerId(userId);
+        List<Project> userProjects = projectMemberService.getUserProjects(userId);
         model.addAttribute("projects", userProjects);
+        model.addAttribute("currentUserId", userId); // ← Передаём userId в шаблон
         return "projects";
     }
+
 
     @GetMapping("/projects/create")
     public String showCreateProjectForm(HttpSession session, Model model) {
@@ -53,20 +64,64 @@ public class ProjectController {
             return "redirect:/login";
         }
 
-        project.setOwnerId(userId);
-        projectService.createProject(project.getName(), project.getDescription(), userId);
+        Project savedProject = projectService.createProject(project.getName(), project.getDescription(), userId);
+        projectMemberService.addMember(savedProject.getId(), userId, "OWNER");
         return "redirect:/projects";
     }
-
 
     @GetMapping("/projects/{id}")
     public String projectDetail(@PathVariable Long id, HttpSession session, Model model) {
         Project project = projectService.getProjectById(id).orElseThrow(() -> new RuntimeException("Project not found"));
         Long userId = (Long) session.getAttribute("userId");
 
+        if (userId == null) {
+            return "redirect:/login";
+        }
+
+        List<User> members = projectMemberService.getProjectMembers(id);
+        boolean isOwner = projectMemberService.isOwner(id, userId);
+
         model.addAttribute("project", project);
-        model.addAttribute("isOwner", userId != null && project.getOwnerId().equals(userId));
+        model.addAttribute("members", members);
+        model.addAttribute("isOwner", isOwner);
+        model.addAttribute("allUsers", userService.getAllUsers());
         return "project-detail";
+    }
+
+
+    @PostMapping("/projects/{id}/add-member")
+    public String addMember(@PathVariable Long id,
+                            @RequestParam Long userId,
+                            HttpSession session) {
+        Long currentUserId = (Long) session.getAttribute("userId");
+        if (currentUserId == null) {
+            return "redirect:/login";
+        }
+
+        if (!projectMemberService.isOwner(id, currentUserId)) {
+            return "redirect:/projects/" + id;
+        }
+
+        projectMemberService.addMember(id, userId, "MEMBER");
+        return "redirect:/projects/" + id;
+    }
+
+
+    @PostMapping("/projects/{id}/remove-member")
+    public String removeMember(@PathVariable Long id,
+                               @RequestParam Long userId,
+                               HttpSession session) {
+        Long currentUserId = (Long) session.getAttribute("userId");
+        if (currentUserId == null) {
+            return "redirect:/login";
+        }
+
+        if (!projectMemberService.isOwner(id, currentUserId)) {
+            return "redirect:/projects/" + id;
+        }
+
+        projectMemberService.removeMember(id, userId);
+        return "redirect:/projects/" + id;
     }
 
     @GetMapping("/projects/{id}/edit")
@@ -78,7 +133,7 @@ public class ProjectController {
 
         Project project = projectService.getProjectById(id).orElseThrow(() -> new RuntimeException("Project not found"));
 
-        if (!project.getOwnerId().equals(userId)) {
+        if (!projectMemberService.isOwner(id, userId)) {
             return "redirect:/projects/" + id; // нельзя редактировать чужой проект
         }
 
@@ -92,10 +147,7 @@ public class ProjectController {
         if (userId == null) {
             return "redirect:/login";
         }
-
-        Project existingProject = projectService.getProjectById(id).orElseThrow(() -> new RuntimeException("Project not found"));
-
-        if (!existingProject.getOwnerId().equals(userId)) {
+        if (!projectMemberService.isOwner(id, userId)) {
             return "redirect:/projects/" + id;
         }
 
@@ -109,10 +161,7 @@ public class ProjectController {
         if (userId == null) {
             return "redirect:/login";
         }
-
-        Project project = projectService.getProjectById(id).orElseThrow(() -> new RuntimeException("Project not found"));
-
-        if (!project.getOwnerId().equals(userId)) {
+        if (!projectMemberService.isOwner(id, userId)) {
             return "redirect:/projects/" + id;
         }
 

@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import java.util.List;
 
 @Service
 public class UserService {
@@ -27,5 +28,9 @@ public class UserService {
     public Optional<User> authenticate(String login, String rawPassword) {
         return userRepository.findByLogin(login)
             .filter(user -> user.getPasswordHash().equals(rawPassword));
+    }
+
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
     }
 }

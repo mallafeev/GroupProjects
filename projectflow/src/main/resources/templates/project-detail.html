@@ -25,14 +25,36 @@
     </div>
 
     <div style="margin-top: 2rem;" th:if="${isOwner}">
+      <h3>Добавить участника</h3>
+      <form th:action="@{/projects/{id}/add-member(id=${project.id})}" method="post">
+        <select name="userId" required>
+          <option value="">Выберите пользователя</option>
+          <option th:each="user : ${allUsers}" th:value="${user.id}" th:text="${user.login}"></option>
+        </select>
+        <button type="submit" class="btn btn-primary">Добавить</button>
+      </form>
+    </div>
+
+    <div style="margin-top: 2rem;">
+      <h3>Участники проекта</h3>
+      <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 1rem;">
+        <div th:each="member : ${members}" style="padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+          <span th:text="${member.login}"></span>
+          <span th:if="${member.id == project.ownerId}" style="color: #f39c12;"> (владелец)</span>
+          <form th:if="${isOwner and member.id != project.ownerId}" th:action="@{/projects/{id}/remove-member(id=${project.id})}" method="post" style="display:inline;">
+            <input type="hidden" name="userId" th:value="${member.id}" />
+            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Удалить участника?')">Удалить</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 2rem;" th:if="${isOwner}">
       <a th:href="@{/projects/{id}/edit(id=${project.id})}" class="btn btn-primary">Редактировать проект</a>
       <form th:action="@{/projects/{id}/delete(id=${project.id})}" method="post" style="display:inline;">
         <button type="submit" class="btn btn-danger" onclick="return confirm('Удалить проект?')">Удалить</button>
       </form>
     </div>
-
-    <!-- ЗДЕСЬ БУДЕТ ТАБЛИЦА С ЗАДАЧАМИ И КОММЕНТАРИИ (ПОКА ПУСТО) -->
-
   </main>
 
 </body>
