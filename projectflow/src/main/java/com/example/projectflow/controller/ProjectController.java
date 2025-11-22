@@ -8,6 +8,8 @@ import com.example.projectflow.model.TaskStatus;
 import com.example.projectflow.service.ProjectMemberService;
 import com.example.projectflow.service.ProjectService;
 import com.example.projectflow.service.UserService;
+import com.example.projectflow.service.CommentService;
+import com.example.projectflow.model.Comment;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -31,6 +33,9 @@ public class ProjectController {
     @Autowired
     private TaskService taskService;
 
+    @Autowired
+    private CommentService commentService;
+
     @GetMapping("/")
     public String index(Model model) {
         List<Project> allProjects = projectService.getAllProjects();
@@ -38,7 +43,7 @@ public class ProjectController {
         return "index";
     }
 
-   @GetMapping("/projects")
+    @GetMapping("/projects")
     public String myProjects(HttpSession session, Model model) {
         Long userId = (Long) session.getAttribute("userId");
         if (userId == null) {
@@ -50,7 +55,6 @@ public class ProjectController {
         model.addAttribute("currentUserId", userId); // ← Передаём userId в шаблон
         return "projects";
     }
-
 
     @GetMapping("/projects/create")
     public String showCreateProjectForm(HttpSession session, Model model) {
@@ -80,24 +84,30 @@ public class ProjectController {
         Project project = projectService.getProjectById(id).orElseThrow(() -> new RuntimeException("Project not found"));
         Long userId = (Long) session.getAttribute("userId");
 
-        if (userId == null) {
-            return "redirect:/login";
-        }
-
-        List<User> members = projectMemberService.getProjectMembers(id);
-        boolean isOwner = projectMemberService.isOwner(id, userId);
-        List<Task> tasks = taskService.getTasksByProjectId(id); // ← ЗАГРУЖАЕМ ЗАДАЧИ
+        List<Comment> comments = commentService.getCommentsByProjectId(id);
 
         model.addAttribute("project", project);
-        model.addAttribute("members", members);
-        model.addAttribute("isOwner", isOwner);
-        model.addAttribute("currentUserId", userId); // ← Нужно для шаблона
-        model.addAttribute("allUsers", userService.getAllUsers());
-        model.addAttribute("tasks", tasks); // ← ПЕРЕДАЁМ ЗАДАЧИ В ШАБЛОН
+        model.addAttribute("comments", comments);
+
+        if (userId != null) {
+            boolean isMember = projectMemberService.isOwner(id, userId) || projectMemberService.findByProjectIdAndUserId(id, userId) != null;
+
+            model.addAttribute("currentUserId", userId);
+            model.addAttribute("isMember", isMember);
+
+            if (isMember) {
+                List<User> members = projectMemberService.getProjectMembers(id);
+                List<Task> tasks = taskService.getTasksByProjectId(id);
+                List<User> allUsers = userService.getAllUsers();
+
+                model.addAttribute("members", members);
+                model.addAttribute("tasks", tasks);
+                model.addAttribute("allUsers", allUsers);
+            }
+        }
 
         return "project-detail";
     }
-
 
     @PostMapping("/projects/{id}/add-member")
     public String addMember(@PathVariable Long id,
@@ -115,7 +125,6 @@ public class ProjectController {
         projectMemberService.addMember(id, userId, "MEMBER");
         return "redirect:/projects/" + id;
     }
-
 
     @PostMapping("/projects/{id}/remove-member")
     public String removeMember(@PathVariable Long id,
@@ -185,53 +194,71 @@ public class ProjectController {
                                     @RequestParam(required = false) String taskName,
                                     @RequestParam(required = false) Long assignedMemberId,
                                     @RequestParam(required = false) Long taskId,
+                                    @RequestParam(required = false) String commentText,
+                                    @RequestParam(required = false) Long commentId,
                                     HttpSession session, Model model) {
-    Long userId = (Long) session.getAttribute("userId");
-    if (userId == null) {
-        return "redirect:/login";
-    }
-
-    if ("createTask".equals(action) && taskName != null && assignedMemberId != null) {
-        if (!projectMemberService.isOwner(id, userId)) {
-            return "redirect:/projects/" + id;
+        Long userId = (Long) session.getAttribute("userId");
+        if (userId == null) {
+            return "redirect:/login";
         }
-        taskService.createTask(taskName, id, assignedMemberId);
-        return "redirect:/projects/" + id;
-    }
 
-    if ("markDone".equals(action) && taskId != null) {
-        Task task = taskService.findById(taskId);
-        Long assignedUserId = task.getAssignedMember().getUser().getId();
-
-        if (!projectMemberService.isOwner(id, userId) && !assignedUserId.equals(userId)) {
+        if ("createTask".equals(action) && taskName != null && assignedMemberId != null) {
+            if (!projectMemberService.isOwner(id, userId)) {
+                return "redirect:/projects/" + id;
+            }
+            taskService.createTask(taskName, id, assignedMemberId);
             return "redirect:/projects/" + id;
         }
 
-        taskService.updateTaskStatus(taskId, TaskStatus.DONE);
-        return "redirect:/projects/" + id;
-    }
+        if ("markDone".equals(action) && taskId != null) {
+            Task task = taskService.findById(taskId);
+            Long assignedUserId = task.getAssignedMember().getUser().getId();
 
-    if ("markInProgress".equals(action) && taskId != null) {
-        Task task = taskService.findById(taskId);
-        Long assignedUserId = task.getAssignedMember().getUser().getId();
+            if (!projectMemberService.isOwner(id, userId) && !assignedUserId.equals(userId)) {
+                return "redirect:/projects/" + id;
+            }
 
-        if (!projectMemberService.isOwner(id, userId) && !assignedUserId.equals(userId)) {
+            taskService.updateTaskStatus(taskId, TaskStatus.DONE);
             return "redirect:/projects/" + id;
         }
 
-        taskService.updateTaskStatus(taskId, TaskStatus.IN_PROGRESS);
-        return "redirect:/projects/" + id;
-    }
+        if ("markInProgress".equals(action) && taskId != null) {
+            Task task = taskService.findById(taskId);
+            Long assignedUserId = task.getAssignedMember().getUser().getId();
 
-    if ("deleteTask".equals(action) && taskId != null) {
-        if (!projectMemberService.isOwner(id, userId)) {
+            if (!projectMemberService.isOwner(id, userId) && !assignedUserId.equals(userId)) {
+                return "redirect:/projects/" + id;
+            }
+
+            taskService.updateTaskStatus(taskId, TaskStatus.IN_PROGRESS);
             return "redirect:/projects/" + id;
         }
 
-        taskService.deleteTask(taskId);
+        if ("deleteTask".equals(action) && taskId != null) {
+            if (!projectMemberService.isOwner(id, userId)) {
+                return "redirect:/projects/" + id;
+            }
+
+            taskService.deleteTask(taskId);
+            return "redirect:/projects/" + id;
+        }
+
+        if ("createComment".equals(action) && commentText != null) {
+            commentService.createComment(id, userId, commentText);
+            return "redirect:/projects/" + id;
+        }
+
+        if ("deleteComment".equals(action) && commentId != null) {
+            if (!projectMemberService.isOwner(id, userId)) {
+                return "redirect:/projects/" + id;
+            }
+
+            commentService.deleteComment(commentId, userId);
+            return "redirect:/projects/" + id;
+        }
+
         return "redirect:/projects/" + id;
     }
-
-    return "redirect:/projects/" + id;
 }
-}
+
+// СДЕЛАТЬ ФИКС, А ТО ДОБАВЛЯТЬ МОЖЕТ НЕ ТОЛЬКО АВТОР
