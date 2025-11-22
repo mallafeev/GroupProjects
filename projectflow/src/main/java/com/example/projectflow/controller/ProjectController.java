@@ -32,7 +32,7 @@ public class ProjectController {
         return "index";
     }
 
-    @GetMapping("/projects")
+   @GetMapping("/projects")
     public String myProjects(HttpSession session, Model model) {
         Long userId = (Long) session.getAttribute("userId");
         if (userId == null) {
@@ -41,6 +41,7 @@ public class ProjectController {
 
         List<Project> userProjects = projectMemberService.getUserProjects(userId);
         model.addAttribute("projects", userProjects);
+        model.addAttribute("currentUserId", userId); // ← Передаём userId в шаблон
         return "projects";
     }
 

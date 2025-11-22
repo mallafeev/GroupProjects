@@ -24,9 +24,9 @@
       <div class="project-card" th:each="project : ${projects}">
         <h3><a th:href="@{/projects/{id}(id=${project.id})}" th:text="${project.name}"></a></h3>
         <p th:text="${project.description}"></p>
-        <span class="status" th:if="${project.ownerId == #session.getAttribute('userId')}">Владелец</span>
-        <span class="status" th:unless="${project.ownerId == #session.getAttribute('userId')}">Участник</span>
-        <div style="margin-top: 1rem;" th:if="${project.ownerId == #session.getAttribute('userId')}">
+        <span class="status" th:if="${project.ownerId == currentUserId}">>Владелец</span>
+        <span class="status" th:unless="${project.ownerId == currentUserId}">Участник</span>
+        <div style="margin-top: 1rem;" th:if="${project.ownerId == currentUserId}">
           <a th:href="@{/projects/{id}/edit(id=${project.id})}" class="btn btn-sm">Редактировать</a>
           <form th:action="@{/projects/{id}/delete(id=${project.id})}" method="post" style="display:inline;">
             <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Удалить проект?')">Удалить</button>
