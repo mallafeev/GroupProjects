@@ -33,7 +33,7 @@ public class AuthController {
         try {
             User savedUser = userService.register(user.getLogin(), user.getPasswordHash());
             session.setAttribute("userId", savedUser.getId());
-            return "redirect:/dashboard";
+            return "redirect:/";
         } catch (RuntimeException e) {
             model.addAttribute("error", e.getMessage());
             return "auth/register";
@@ -55,7 +55,7 @@ public class AuthController {
 
         if (authenticatedUser.isPresent()) {
             session.setAttribute("userId", authenticatedUser.get().getId());
-            return "redirect:/dashboard";
+            return "redirect:/";
         } else {
             model.addAttribute("error", "Неверный логин или пароль");
             return "auth/login";
