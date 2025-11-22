@@ -86,11 +86,15 @@ public class ProjectController {
 
         List<User> members = projectMemberService.getProjectMembers(id);
         boolean isOwner = projectMemberService.isOwner(id, userId);
+        List<Task> tasks = taskService.getTasksByProjectId(id); // ← ЗАГРУЖАЕМ ЗАДАЧИ
 
         model.addAttribute("project", project);
         model.addAttribute("members", members);
         model.addAttribute("isOwner", isOwner);
+        model.addAttribute("currentUserId", userId); // ← Нужно для шаблона
         model.addAttribute("allUsers", userService.getAllUsers());
+        model.addAttribute("tasks", tasks); // ← ПЕРЕДАЁМ ЗАДАЧИ В ШАБЛОН
+
         return "project-detail";
     }
 
@@ -175,34 +179,27 @@ public class ProjectController {
         return "redirect:/projects";
     }
 
-    @PostMapping("/projects/{id}/tasks/create")
-    public String createTask(@PathVariable Long id,
-                            @RequestParam String name,
-                            @RequestParam Long assignedMemberId,
-                            HttpSession session) {
-        Long userId = (Long) session.getAttribute("userId");
-        if (userId == null) {
-            return "redirect:/login";
-        }
+    @PostMapping("/projects/{id}")
+    public String handleProjectPage(@PathVariable Long id,
+                                    @RequestParam(required = false) String action,
+                                    @RequestParam(required = false) String taskName,
+                                    @RequestParam(required = false) Long assignedMemberId,
+                                    @RequestParam(required = false) Long taskId,
+                                    HttpSession session, Model model) {
+    Long userId = (Long) session.getAttribute("userId");
+    if (userId == null) {
+        return "redirect:/login";
+    }
 
+    if ("createTask".equals(action) && taskName != null && assignedMemberId != null) {
         if (!projectMemberService.isOwner(id, userId)) {
             return "redirect:/projects/" + id;
         }
-
-        taskService.createTask(name, id, assignedMemberId);
+        taskService.createTask(taskName, id, assignedMemberId);
         return "redirect:/projects/" + id;
     }
 
-    @PostMapping("/projects/{id}/tasks/{taskId}/status")
-    public String updateTaskStatus(@PathVariable Long id,
-                                @PathVariable Long taskId,
-                                @RequestParam TaskStatus status,
-                                HttpSession session) {
-        Long userId = (Long) session.getAttribute("userId");
-        if (userId == null) {
-            return "redirect:/login";
-        }
-
+    if ("markDone".equals(action) && taskId != null) {
         Task task = taskService.findById(taskId);
         Long assignedUserId = task.getAssignedMember().getUser().getId();
 
@@ -210,37 +207,23 @@ public class ProjectController {
             return "redirect:/projects/" + id;
         }
 
-        taskService.updateTaskStatus(taskId, status);
+        taskService.updateTaskStatus(taskId, TaskStatus.DONE);
         return "redirect:/projects/" + id;
     }
 
-    @PostMapping("/projects/{id}/tasks/{taskId}/assignee")
-    public String updateTaskAssignee(@PathVariable Long id,
-                                    @PathVariable Long taskId,
-                                    @RequestParam Long newMemberId,
-                                    HttpSession session) {
-        Long userId = (Long) session.getAttribute("userId");
-        if (userId == null) {
-            return "redirect:/login";
-        }
+    if ("markInProgress".equals(action) && taskId != null) {
+        Task task = taskService.findById(taskId);
+        Long assignedUserId = task.getAssignedMember().getUser().getId();
 
-        if (!projectMemberService.isOwner(id, userId)) {
+        if (!projectMemberService.isOwner(id, userId) && !assignedUserId.equals(userId)) {
             return "redirect:/projects/" + id;
         }
 
-        taskService.updateTaskAssignee(taskId, newMemberId);
+        taskService.updateTaskStatus(taskId, TaskStatus.IN_PROGRESS);
         return "redirect:/projects/" + id;
     }
 
-    @PostMapping("/projects/{id}/tasks/{taskId}/delete")
-    public String deleteTask(@PathVariable Long id,
-                            @PathVariable Long taskId,
-                            HttpSession session) {
-        Long userId = (Long) session.getAttribute("userId");
-        if (userId == null) {
-            return "redirect:/login";
-        }
-
+    if ("deleteTask".equals(action) && taskId != null) {
         if (!projectMemberService.isOwner(id, userId)) {
             return "redirect:/projects/" + id;
         }
@@ -248,4 +231,7 @@ public class ProjectController {
         taskService.deleteTask(taskId);
         return "redirect:/projects/" + id;
     }
+
+    return "redirect:/projects/" + id;
+}
 }
