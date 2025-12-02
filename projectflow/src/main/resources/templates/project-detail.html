@@ -64,6 +64,19 @@
 
     <!-- === УЧАСТНИКИ И ЗАДАЧИ (только если пользователь участник) === -->
     <div th:if="${isMember}">
+      <!-- === КНОПКА СОЗДАТЬ ПРИГЛАШЕНИЕ (только для владельца) === -->
+      <div style="margin-top: 2rem;" th:if="${project.ownerId == currentUserId}">
+        <form th:action="@{/projects/{id}/invite(id=${project.id})}" method="post">
+          <button type="submit" class="btn btn-primary">Создать приглашение</button>
+        </form>
+
+        <!-- === ПОЛЕ С ССЫЛКОЙ (появляется после создания) === -->
+        <div th:if="${inviteLink}" style="margin-top: 1rem; padding: 1rem; background: #e8f4fd; border: 1px solid #b3d9ff; border-radius: 5px;">
+          <h4>Ссылка для приглашения:</h4>
+          <input type="text" th:value="${inviteLink}" readonly style="width:100%; padding: 0.5rem; margin-top: 0.5rem;" onclick="this.select();" />
+        </div>
+      </div>
+
       <div style="margin-top: 2rem;">
         <h3>Добавить участника</h3>
         <form th:action="@{/projects/{id}/add-member(id=${project.id})}" method="post">
@@ -162,8 +175,6 @@
     <div th:unless="${isMember}" style="margin-top: 2rem; color: #666;">
       <p>Вы не состоите в этом проекте.</p>
     </div>
-    
   </main>
-
 </body>
 </html>

@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import com.example.projectflow.service.InviteService;
 
 import java.util.List;
 
@@ -23,6 +24,9 @@ public class ProjectController {
 
     @Autowired
     private ProjectService projectService;
+
+    @Autowired
+    private InviteService inviteService;
 
     @Autowired
     private ProjectMemberService projectMemberService;
@@ -262,6 +266,41 @@ public class ProjectController {
         }
 
         return "redirect:/projects/" + id;
+    }
+
+
+    @PostMapping("/projects/{id}/invite")
+    public String createInvite(@PathVariable Long id, HttpSession session, Model model) {
+        Long userId = (Long) session.getAttribute("userId");
+        if (userId == null) {
+            return "redirect:/login";
+        }
+
+        if (!projectMemberService.isOwner(id, userId)) {
+            return "redirect:/projects/" + id;
+        }
+
+        String code = inviteService.createInvite(id, userId, 24); // на 24 часа
+        String inviteLink = "http://localhost:8080/invite/" + code;
+
+        // Загружаем данные проекта снова
+        Project project = projectService.getProjectById(id).orElseThrow(() -> new RuntimeException("Project not found"));
+        List<User> members = projectMemberService.getProjectMembers(id);
+        List<Task> tasks = taskService.getTasksByProjectId(id);
+        List<User> allUsers = userService.getAllUsers();
+        List<Comment> comments = commentService.getCommentsByProjectId(id);
+
+        model.addAttribute("project", project);
+        model.addAttribute("members", members);
+        model.addAttribute("tasks", tasks);
+        model.addAttribute("allUsers", allUsers);
+        model.addAttribute("comments", comments);
+        model.addAttribute("currentUserId", userId);
+        model.addAttribute("isMember", true);
+        model.addAttribute("isOwner", true);
+        model.addAttribute("inviteLink", inviteLink); // ← Передаём ссылку в шаблон
+
+        return "project-detail";
     }
 }
 

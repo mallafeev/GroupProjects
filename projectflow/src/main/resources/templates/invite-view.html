@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <title>Приглашение в проект</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+  <header class="header">
+    <div class="logo">ProjectFlow</div>
+    <nav class="nav">
+      <a href="/">Все проекты</a>
+      <a href="/login">Вход</a>
+      <a href="/register">Регистрация</a>
+    </nav>
+  </header>
+
+  <main class="main">
+    <h2>Вас пригласили в проект</h2>
+    <p><strong th:text="${projectName}"></strong></p>
+    <p>Пригласил: <strong th:text="${creatorName}"></strong></p>
+
+    <div style="margin-top: 2rem;">
+      <p>Чтобы присоединиться, <a href="/login">войдите</a> или <a href="/register">зарегистрируйтесь</a>.</p>
+      <form th:action="@{/invite/{code}(code=${code})}" method="post">
+        <button type="submit" class="btn btn-primary">Присоединиться к проекту</button>
+      </form>
+    </div>
+  </main>
+
+</body>
+</html>
