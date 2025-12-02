@@ -51,7 +51,7 @@
           <div style="margin-top: 0.3rem;" th:text="${comment.text}"></div>
 
           <!-- Кнопка удаления (только для владельца проекта) -->
-          <div th:if="${isMember and project.ownerId == currentUserId}" style="margin-top: 0.3rem;">
+          <div th:if="${currentUserId != null and isMember and project.ownerId == currentUserId}" style="margin-top: 0.3rem;">
             <form th:action="@{/projects/{id}(id=${project.id})}" method="post" style="display:inline;">
               <input type="hidden" name="action" value="deleteComment" />
               <input type="hidden" name="commentId" th:value="${comment.id}" />
