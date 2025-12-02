@@ -11,9 +11,13 @@
     <div class="logo">ProjectFlow</div>
     <nav class="nav">
       <a href="/" class="active">Все проекты</a>
-      <a href="/projects">Мои проекты</a>
-      <a href="/login">Вход</a>
-      <a href="/register">Регистрация</a>
+      <!-- Если пользователь авторизован -->
+      <a th:if="${currentUserId != null}" href="/projects">Мои проекты</a>
+      <a th:if="${currentUserId != null}" href="/projects/create">Создать проект</a>
+      <a th:if="${currentUserId != null}" href="/logout">Выйти</a>
+      <!-- Если пользователь не авторизован -->
+      <a th:unless="${currentUserId != null}" href="/login">Вход</a>
+      <a th:unless="${currentUserId != null}" href="/register">Регистрация</a>
     </nav>
   </header>
 

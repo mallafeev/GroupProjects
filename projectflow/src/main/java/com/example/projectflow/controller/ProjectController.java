@@ -37,9 +37,13 @@ public class ProjectController {
     private CommentService commentService;
 
     @GetMapping("/")
-    public String index(Model model) {
+    public String index(HttpSession session, Model model) {
+        Long userId = (Long) session.getAttribute("userId");
+
         List<Project> allProjects = projectService.getAllProjects();
         model.addAttribute("projects", allProjects);
+        model.addAttribute("currentUserId", userId); // ← Вот это добавили
+
         return "index";
     }
 

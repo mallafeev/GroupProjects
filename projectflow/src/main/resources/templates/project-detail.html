@@ -11,9 +11,13 @@
     <div class="logo">ProjectFlow</div>
     <nav class="nav">
       <a href="/">Все проекты</a>
-      <a href="/projects">Мои проекты</a>
-      <a th:if="${isMember}" th:href="@{/projects/{id}/edit(id=${project.id})}">Редактировать</a>
-      <a href="/logout" th:unless="${isMember}">Выйти</a>
+      <!-- Если пользователь авторизован -->
+      <a th:if="${currentUserId != null}" href="/projects">Мои проекты</a>
+      <a th:if="${currentUserId != null}" href="/projects/create">Создать проект</a>
+      <a th:if="${currentUserId != null}" href="/logout">Выйти</a>
+      <!-- Если пользователь не авторизован -->
+      <a th:unless="${currentUserId != null}" href="/login">Вход</a>
+      <a th:unless="${currentUserId != null}" href="/register">Регистрация</a>
     </nav>
   </header>
 
@@ -154,8 +158,9 @@
       </div>
     </div>
 
+    <!-- === Сообщение, если пользователь не участник === -->
     <div th:unless="${isMember}" style="margin-top: 2rem; color: #666;">
-      <p>Вы не состоите в этом проекте. У вас ограниченный доступ.</p>
+      <p>Вы не состоите в этом проекте.</p>
     </div>
     
   </main>
