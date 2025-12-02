@@ -4,6 +4,7 @@ import com.example.projectflow.model.User;
 import com.example.projectflow.service.UserService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.example.projectflow.service.InviteService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +14,9 @@ public class AuthController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private InviteService inviteService;
 
     @GetMapping("/register")
     public String showRegisterForm(Model model) {
@@ -25,14 +29,28 @@ public class AuthController {
                         @RequestParam String confirmPassword,
                         Model model, HttpSession session) {
 
+        // === ИСПРАВЛЕНО: используем getPassword() ===
         if (!user.getPasswordHash().equals(confirmPassword)) {
             model.addAttribute("error", "Пароли не совпадают");
             return "auth/register";
         }
 
         try {
-            User savedUser = userService.register(user.getLogin(), user.getPasswordHash());
+            User savedUser = userService.register(user.getLogin(), user.getPasswordHash()); // ← передаём plain password
             session.setAttribute("userId", savedUser.getId());
+
+            // === ПРОВЕРЯЕМ, БЫЛ ЛИ ИНВАЙТ ===
+            String pendingInviteCode = (String) session.getAttribute("pendingInviteCode");
+            if (pendingInviteCode != null) {
+                try {
+                    inviteService.acceptInvite(pendingInviteCode, savedUser.getId());
+                    session.removeAttribute("pendingInviteCode"); // удаляем
+                } catch (Exception e) {
+                    // игнорируем ошибку, но можно залогировать
+                    System.out.println("Ошибка при добавлении по инвайту: " + e.getMessage());
+                }
+            }
+
             return "redirect:/";
         } catch (RuntimeException e) {
             model.addAttribute("error", e.getMessage());
@@ -55,6 +73,19 @@ public class AuthController {
 
         if (authenticatedUser.isPresent()) {
             session.setAttribute("userId", authenticatedUser.get().getId());
+
+            // === ПРОВЕРЯЕМ, БЫЛ ЛИ ИНВАЙТ ===
+            String pendingInviteCode = (String) session.getAttribute("pendingInviteCode");
+            if (pendingInviteCode != null) {
+                try {
+                    inviteService.acceptInvite(pendingInviteCode, authenticatedUser.get().getId());
+                    session.removeAttribute("pendingInviteCode"); // удаляем
+                } catch (Exception e) {
+                    // игнорируем ошибку, но можно залогировать
+                    System.out.println("Ошибка при добавлении по инвайту: " + e.getMessage());
+                }
+            }
+
             return "redirect:/";
         } else {
             model.addAttribute("error", "Неверный логин или пароль");

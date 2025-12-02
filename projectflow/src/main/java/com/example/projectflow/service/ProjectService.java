@@ -14,6 +14,9 @@ public class ProjectService {
     @Autowired
     private ProjectRepository projectRepository;
 
+    @Autowired
+    private ProjectMemberService projectMemberService;
+
     public List<Project> getAllProjects() {
         return projectRepository.findAll();
     }
@@ -43,5 +46,9 @@ public class ProjectService {
 
     public void deleteProject(Long id) {
         projectRepository.deleteById(id);
+    }
+
+    public boolean isOwner(Long projectId, Long userId) {
+        return projectMemberService.isOwner(projectId, userId);
     }
 }
