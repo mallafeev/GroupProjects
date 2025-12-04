@@ -8,6 +8,7 @@ import com.example.projectflow.repository.ProjectRepository;
 import com.example.projectflow.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -25,17 +26,17 @@ public class ProjectMemberService {
     private ProjectRepository projectRepository;
 
     public void addMember(Long projectId, Long userId, String role) {
-        Project project = projectRepository.findById(projectId).orElseThrow(() -> new RuntimeException("Project not found"));
-        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
-
         if (projectMemberRepository.existsByProjectIdAndUserId(projectId, userId)) {
             throw new RuntimeException("User is already a member of this project");
         }
 
+        Project project = projectRepository.findById(projectId).orElseThrow(() -> new RuntimeException("Project not found"));
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+
         ProjectMember member = new ProjectMember(project, user, role);
         projectMemberRepository.save(member);
     }
-
+    @Transactional
     public void removeMember(Long projectId, Long userId) {
         projectMemberRepository.deleteByProjectIdAndUserId(projectId, userId);
     }

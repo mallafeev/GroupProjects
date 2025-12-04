@@ -6,6 +6,7 @@ import com.example.projectflow.model.Task;
 import com.example.projectflow.model.TaskStatus;
 import com.example.projectflow.repository.ProjectMemberRepository;
 import com.example.projectflow.repository.TaskRepository;
+import com.example.projectflow.repository.ProjectRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -20,16 +21,20 @@ public class TaskService {
     @Autowired
     private ProjectMemberRepository projectMemberRepository;
 
+    @Autowired
+    private ProjectRepository projectRepository;
+
     public Task createTask(String name, Long projectId, Long assignedMemberId) {
+        // assignedMemberId — это ID из таблицы project_members
         ProjectMember member = projectMemberRepository.findById(assignedMemberId).orElseThrow(() -> new RuntimeException("Member not found"));
-        Project project = new Project();
-        project.setId(projectId);
+
+        Project project = projectRepository.findById(projectId).orElseThrow(() -> new RuntimeException("Project not found"));
 
         Task task = new Task();
         task.setName(name);
         task.setProject(project);
         task.setAssignedMember(member);
-        task.setStatus(TaskStatus.PENDING); // по умолчанию
+        task.setStatus(TaskStatus.PENDING);
 
         return taskRepository.save(task);
     }

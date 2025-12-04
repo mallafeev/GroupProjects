@@ -15,6 +15,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
 import com.example.projectflow.service.InviteService;
 
 import java.util.List;
@@ -120,7 +122,8 @@ public class ProjectController {
     @PostMapping("/projects/{id}/add-member")
     public String addMember(@PathVariable Long id,
                             @RequestParam Long userId,
-                            HttpSession session) {
+                            HttpSession session, RedirectAttributes redirectAttributes) {
+
         Long currentUserId = (Long) session.getAttribute("userId");
         if (currentUserId == null) {
             return "redirect:/login";
@@ -130,7 +133,12 @@ public class ProjectController {
             return "redirect:/projects/" + id;
         }
 
-        projectMemberService.addMember(id, userId, "MEMBER");
+        try {
+            projectMemberService.addMember(id, userId, "MEMBER");
+        } catch (RuntimeException e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+        }
+
         return "redirect:/projects/" + id;
     }
 
@@ -303,5 +311,3 @@ public class ProjectController {
         return "project-detail";
     }
 }
-
-// СДЕЛАТЬ ФИКС, А ТО ДОБАВЛЯТЬ МОЖЕТ НЕ ТОЛЬКО АВТОР
