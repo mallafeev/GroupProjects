@@ -28,7 +28,7 @@
       <div class="project-card" th:each="project : ${projects}">
         <h3><a th:href="@{/projects/{id}(id=${project.id})}" th:text="${project.name}"></a></h3>
         <p th:text="${project.description}"></p>
-        <span class="status">Автор: <span th:text="${project.ownerId}"></span></span>
+        <div class="status">Создан: <span th:text="${#temporals.format(project.createdAt, 'dd.MM.yyyy')}"></span></div>
       </div>
     </div>
   </main>

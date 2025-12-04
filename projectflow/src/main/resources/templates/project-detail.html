@@ -4,6 +4,21 @@
   <meta charset="UTF-8" />
   <title th:text="${project.name}">Проект</title>
   <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    .section {
+      display: none;
+    }
+    .section.active {
+      display: block;
+    }
+    .btn-group {
+      margin: 2rem 0;
+    }
+    .btn-group button {
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+  </style>
 </head>
 <body>
 
@@ -28,7 +43,118 @@
       <span class="status">Создан: <span th:text="${#temporals.format(project.createdAt, 'dd.MM.yyyy HH:mm')}"></span></span>
     </div>
 
-    <!-- === КОММЕНТАРИИ (всегда видны) === -->
+    <!-- === КНОПКИ РАЗДЕЛЕНИЯ === -->
+    <div class="btn-group" th:if="${isMember}">
+      <button class="btn btn-primary" onclick="showSection('tasks')">Задачи</button>
+      <button class="btn btn-primary" onclick="showSection('members')">Участники</button>
+    </div>
+
+    <!-- === РАЗДЕЛ ЗАДАЧ === -->
+    <div id="tasks" class="section">
+      <h3>Задачи проекта</h3>
+
+      <!-- Форма создания задачи (только для владельца) -->
+      <div th:if="${project.ownerId == currentUserId}">
+        <h4>Создать задачу</h4>
+        <form th:action="@{/projects/{id}(id=${project.id})}" method="post">
+          <input type="hidden" name="action" value="createTask" />
+          <input type="text" name="taskName" placeholder="Название задачи" required />
+          <select name="assignedMemberId" required>
+            <option value="">Выберите участника</option>
+            <option th:each="member : ${members}" th:value="${member.id}" th:text="${member.login}"></option>
+          </select>
+          <button type="submit" class="btn btn-primary">Создать задачу</button>
+        </form>
+      </div>
+
+      <!-- Таблица задач -->
+      <div style="margin-top: 1rem;">
+        <table style="width:100%; border-collapse: collapse;">
+          <thead>
+            <tr style="background: #f5f5f5;">
+              <th style="padding: 0.5rem; border: 1px solid #ddd;">Название</th>
+              <th style="padding: 0.5rem; border: 1px solid #ddd;">Участник</th>
+              <th style="padding: 0.5rem; border: 1px solid #ddd;">Статус</th>
+              <th style="padding: 0.5rem; border: 1px solid #ddd;">Действия</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="task : ${tasks}">
+              <td style="padding: 0.5rem; border: 1px solid #ddd;" th:text="${task.name}"></td>
+              <td style="padding: 0.5rem; border: 1px solid #ddd;" th:text="${task.assignedMember.user.login}"></td>
+              <td style="padding: 0.5rem; border: 1px solid #ddd;" th:text="${task.status}"></td>
+              <td style="padding: 0.5rem; border: 1px solid #ddd;">
+                <!-- Кнопка "Галочка" — DONE -->
+                <form th:if="${project.ownerId == currentUserId or task.assignedMember.user.id == currentUserId}" th:action="@{/projects/{id}(id=${project.id})}" method="post" style="display:inline;">
+                  <input type="hidden" name="action" value="markDone" />
+                  <input type="hidden" name="taskId" th:value="${task.id}" />
+                  <button type="submit" class="btn btn-sm" title="Отметить как выполнено">✅</button>
+                </form>
+
+                <!-- Кнопка "Часы" — IN_PROGRESS -->
+                <form th:if="${project.ownerId == currentUserId or task.assignedMember.user.id == currentUserId}" th:action="@{/projects/{id}(id=${project.id})}" method="post" style="display:inline; margin-left: 0.2rem;">
+                  <input type="hidden" name="action" value="markInProgress" />
+                  <input type="hidden" name="taskId" th:value="${task.id}" />
+                  <button type="submit" class="btn btn-sm" title="Отметить как в работе">⏰</button>
+                </form>
+
+                <!-- Кнопка "Корзина" — Удалить (только для владельца) -->
+                <form th:if="${project.ownerId == currentUserId}" th:action="@{/projects/{id}(id=${project.id})}" method="post" style="display:inline; margin-left: 0.2rem;">
+                  <input type="hidden" name="action" value="deleteTask" />
+                  <input type="hidden" name="taskId" th:value="${task.id}" />
+                  <button type="submit" class="btn btn-sm btn-danger" title="Удалить задачу" onclick="return confirm('Удалить задачу?')">🗑️</button>
+                </form>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- === РАЗДЕЛ УЧАСТНИКОВ === -->
+    <div id="members" class="section">
+      <h3>Участники проекта</h3>
+
+      <!-- Форма добавления участника (только для владельца) -->
+      <div th:if="${project.ownerId == currentUserId}">
+        <h4>Добавить участника</h4>
+        <form th:action="@{/projects/{id}/add-member(id=${project.id})}" method="post">
+          <select name="userId" required>
+            <option value="">Выберите пользователя</option>
+            <option th:each="user : ${allUsers}" th:value="${user.id}" th:text="${user.login}"></option>
+          </select>
+          <button type="submit" class="btn btn-primary">Добавить</button>
+        </form>
+
+        <!-- Кнопка создания приглашения -->
+        <h4>Создать приглашение</h4>
+        <form th:action="@{/projects/{id}/invite(id=${project.id})}" method="post">
+          <button type="submit" class="btn btn-primary">Создать приглашение</button>
+        </form>
+
+        <!-- === ПОЛЕ С ССЫЛКОЙ (появляется после создания) === -->
+        <div th:if="${inviteLink}" style="margin-top: 1rem; padding: 1rem; background: #e8f4fd; border: 1px solid #b3d9ff; border-radius: 5px;">
+          <h4>Ссылка для приглашения:</h4>
+          <input type="text" th:value="${inviteLink}" readonly style="width:100%; padding: 0.5rem; margin-top: 0.5rem;" onclick="this.select();" />
+        </div>
+      </div>
+
+      <!-- Таблица участников -->
+      <div style="margin-top: 1rem;">
+        <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 1rem;">
+          <div th:each="member : ${members}" style="padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+            <span th:text="${member.login}"></span>
+            <span th:if="${member.id == project.ownerId}" style="color: #f39c12;"> (владелец)</span>
+            <form th:if="${project.ownerId == currentUserId and member.id != project.ownerId}" th:action="@{/projects/{id}/remove-member(id=${project.id})}" method="post" style="display:inline;">
+              <input type="hidden" name="userId" th:value="${member.id}" />
+              <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Удалить участника?')">Удалить</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- === КОММЕНТАРИИ (всегда внизу) === -->
     <div style="margin-top: 2rem;">
       <h3>Комментарии</h3>
 
@@ -45,10 +171,10 @@
       <div style="margin-top: 1rem;">
         <div th:each="comment : ${comments}" style="border-bottom: 1px solid #eee; padding: 0.5rem 0;">
           <div>
-            <strong th:text="${comment.author.login}"></strong>
-            <span style="color: #999; font-size: 0.9rem; margin-left: 0.5rem;" th:text="${#temporals.format(comment.createdAt, 'dd.MM.yyyy HH:mm')}"></span>
+            <strong th:text="${comment.author.login}" style="color: var(--off-white);"></strong>
+            <span th:text="${#temporals.format(comment.createdAt, 'dd.MM.yyyy HH:mm')}" style="color: var(--off-white);" ></span>
           </div>
-          <div style="margin-top: 0.3rem;" th:text="${comment.text}"></div>
+          <div th:text="${comment.text}" style="color: var(--off-white);"></div>
 
           <!-- Кнопка удаления (только для владельца проекта) -->
           <div th:if="${currentUserId != null and isMember and project.ownerId == currentUserId}" style="margin-top: 0.3rem;">
@@ -62,119 +188,30 @@
       </div>
     </div>
 
-    <!-- === УЧАСТНИКИ И ЗАДАЧИ (только если пользователь участник) === -->
-    <div th:if="${isMember}">
-      <!-- === КНОПКА СОЗДАТЬ ПРИГЛАШЕНИЕ (только для владельца) === -->
-      <div style="margin-top: 2rem;" th:if="${project.ownerId == currentUserId}">
-        <form th:action="@{/projects/{id}/invite(id=${project.id})}" method="post">
-          <button type="submit" class="btn btn-primary">Создать приглашение</button>
-        </form>
-
-        <!-- === ПОЛЕ С ССЫЛКОЙ (появляется после создания) === -->
-        <div th:if="${inviteLink}" style="margin-top: 1rem; padding: 1rem; background: #e8f4fd; border: 1px solid #b3d9ff; border-radius: 5px;">
-          <h4>Ссылка для приглашения:</h4>
-          <input type="text" th:value="${inviteLink}" readonly style="width:100%; padding: 0.5rem; margin-top: 0.5rem;" onclick="this.select();" />
-        </div>
-      </div>
-
-      <div style="margin-top: 2rem;">
-        <h3>Добавить участника</h3>
-        <form th:action="@{/projects/{id}/add-member(id=${project.id})}" method="post">
-          <select name="userId" required>
-            <option value="">Выберите пользователя</option>
-            <option th:each="user : ${allUsers}" th:value="${user.id}" th:text="${user.login}"></option>
-          </select>
-          <button type="submit" class="btn btn-primary">Добавить</button>
-        </form>
-      </div>
-
-      <div style="margin-top: 2rem;">
-        <h3>Участники проекта</h3>
-        <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 1rem;">
-          <div th:each="member : ${members}" style="padding: 0.5rem 0; border-bottom: 1px solid #eee;">
-            <span th:text="${member.login}"></span>
-            <span th:if="${member.id == project.ownerId}" style="color: #f39c12;"> (владелец)</span>
-            <form th:if="${project.ownerId == currentUserId and member.id != project.ownerId}" th:action="@{/projects/{id}/remove-member(id=${project.id})}" method="post" style="display:inline;">
-              <input type="hidden" name="userId" th:value="${member.id}" />
-              <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Удалить участника?')">Удалить</button>
-            </form>
-          </div>
-        </div>
-      </div>
-
-      <div style="margin-top: 2rem;">
-        <h3>Задачи проекта</h3>
-
-        <!-- Форма создания задачи (только для владельца) -->
-        <div th:if="${project.ownerId == currentUserId}">
-          <h4>Создать задачу</h4>
-          <form th:action="@{/projects/{id}(id=${project.id})}" method="post">
-            <input type="hidden" name="action" value="createTask" />
-            <input type="text" name="taskName" placeholder="Название задачи" required />
-            <select name="assignedMemberId" required>
-              <option value="">Выберите участника</option>
-              <option th:each="member : ${members}" th:value="${member.id}" th:text="${member.login}"></option>
-            </select>
-            <button type="submit" class="btn btn-primary">Создать задачу</button>
-          </form>
-        </div>
-
-        <!-- Таблица задач -->
-        <div style="margin-top: 1rem;">
-          <table style="width:100%; border-collapse: collapse;">
-            <thead>
-              <tr style="background: #f5f5f5;">
-                <th style="padding: 0.5rem; border: 1px solid #ddd;">Название</th>
-                <th style="padding: 0.5rem; border: 1px solid #ddd;">Участник</th>
-                <th style="padding: 0.5rem; border: 1px solid #ddd;">Статус</th>
-                <th style="padding: 0.5rem; border: 1px solid #ddd;">Действия</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr th:each="task : ${tasks}">
-                <td style="padding: 0.5rem; border: 1px solid #ddd;" th:text="${task.name}"></td>
-                <td style="padding: 0.5rem; border: 1px solid #ddd;" th:text="${task.assignedMember.user.login}"></td>
-                <td style="padding: 0.5rem; border: 1px solid #ddd;" th:text="${task.status}"></td>
-                <td style="padding: 0.5rem; border: 1px solid #ddd;">
-                  <!-- Кнопка "Галочка" — DONE -->
-                  <form th:if="${project.ownerId == currentUserId or task.assignedMember.user.id == currentUserId}" th:action="@{/projects/{id}(id=${project.id})}" method="post" style="display:inline;">
-                    <input type="hidden" name="action" value="markDone" />
-                    <input type="hidden" name="taskId" th:value="${task.id}" />
-                    <button type="submit" class="btn btn-sm" title="Отметить как выполнено">✅</button>
-                  </form>
-
-                  <!-- Кнопка "Часы" — IN_PROGRESS -->
-                  <form th:if="${project.ownerId == currentUserId or task.assignedMember.user.id == currentUserId}" th:action="@{/projects/{id}(id=${project.id})}" method="post" style="display:inline; margin-left: 0.2rem;">
-                    <input type="hidden" name="action" value="markInProgress" />
-                    <input type="hidden" name="taskId" th:value="${task.id}" />
-                    <button type="submit" class="btn btn-sm" title="Отметить как в работе">⏰</button>
-                  </form>
-
-                  <!-- Кнопка "Корзина" — Удалить (только для владельца) -->
-                  <form th:if="${project.ownerId == currentUserId}" th:action="@{/projects/{id}(id=${project.id})}" method="post" style="display:inline; margin-left: 0.2rem;">
-                    <input type="hidden" name="action" value="deleteTask" />
-                    <input type="hidden" name="taskId" th:value="${task.id}" />
-                    <button type="submit" class="btn btn-sm btn-danger" title="Удалить задачу" onclick="return confirm('Удалить задачу?')">🗑️</button>
-                  </form>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div style="margin-top: 2rem;" th:if="${project.ownerId == currentUserId}">
-        <a th:href="@{/projects/{id}/edit(id=${project.id})}" class="btn btn-primary">Редактировать проект</a>
-        <form th:action="@{/projects/{id}/delete(id=${project.id})}" method="post" style="display:inline;">
-          <button type="submit" class="btn btn-danger" onclick="return confirm('Удалить проект?')">Удалить</button>
-        </form> 
-      </div>
-    </div>
-
     <!-- === Сообщение, если пользователь не участник === -->
     <div th:unless="${isMember}" style="margin-top: 2rem; color: #666;">
       <p>Вы не состоите в этом проекте.</p>
     </div>
   </main>
+
+  <script>
+    function showSection(sectionId) {
+      // Скрываем все секции
+      document.querySelectorAll('.section').forEach(el => {
+        el.classList.remove('active');
+      });
+
+      // Показываем выбранную
+      document.getElementById(sectionId).classList.add('active');
+    }
+
+    // Показываем первую секцию по умолчанию
+    document.addEventListener('DOMContentLoaded', () => {
+      const firstButton = document.querySelector('.btn-group button');
+      if (firstButton) {
+        firstButton.click();
+      }
+    });
+  </script>
 </body>
 </html>

@@ -21,19 +21,29 @@
     <h1>Мои проекты</h1>
 
     <div class="projects-grid">
-      <div class="project-card" th:each="project : ${projects}">
-        <h3><a th:href="@{/projects/{id}(id=${project.id})}" th:text="${project.name}"></a></h3>
-        <p th:text="${project.description}"></p>
+    <div class="project-card" th:each="project : ${projects}">
+      <h3><a th:href="@{/projects/{id}(id=${project.id})}" th:text="${project.name}"></a></h3>
+      <p th:text="${project.description}"></p>
+
+      <!-- === КНОПКИ И СТАТУС В ОДНОЙ СТРОКЕ === -->
+      <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; margin-top: 1rem;">
+        <!-- Кнопки (только для владельца) -->
+        <th:block th:if="${project.ownerId == currentUserId}">
+          <form th:action="@{/projects/{id}/edit(id=${project.id})}" method="get" style="display:inline;">
+            <button type="submit" class="btn btn-sm">Редактировать</button>
+          </form>
+
+          <form th:action="@{/projects/{id}/delete(id=${project.id})}" method="post" style="display:inline;">
+            <button type="submit" class="btn btn-sm" onclick="return confirm('Удалить проект?')">Удалить</button>
+          </form>
+        </th:block>
+
+        <!-- Статус (всегда видно) -->
         <span class="status" th:if="${project.ownerId == currentUserId}">Владелец</span>
         <span class="status" th:unless="${project.ownerId == currentUserId}">Участник</span>
-        <div style="margin-top: 1rem;" th:if="${project.ownerId == currentUserId}">
-          <a th:href="@{/projects/{id}/edit(id=${project.id})}" class="btn btn-sm">Редактировать</a>
-          <form th:action="@{/projects/{id}/delete(id=${project.id})}" method="post" style="display:inline;">
-            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Удалить проект?')">Удалить</button>
-          </form>
-        </div>
       </div>
     </div>
+  </div>
   </main>
 
 </body>
