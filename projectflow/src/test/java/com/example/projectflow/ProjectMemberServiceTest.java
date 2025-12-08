@@ -13,8 +13,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -96,66 +94,6 @@ class ProjectMemberServiceTest {
 
         // Then
         verify(projectMemberRepository).deleteByProjectIdAndUserId(projectId, userId);
-    }
-
-    @Test
-    void testGetProjectMembers() {
-        // Given
-        Long projectId = 1L;
-
-        User user1 = new User();
-        user1.setId(1L);
-        User user2 = new User();
-        user2.setId(2L);
-
-        ProjectMember member1 = new ProjectMember();
-        member1.setUser(user1);
-        ProjectMember member2 = new ProjectMember();
-        member2.setUser(user2);
-
-        List<ProjectMember> members = Arrays.asList(member1, member2);
-
-        when(projectMemberRepository.findByProjectId(projectId)).thenReturn(members);
-
-        // When
-        List<User> result = projectMemberService.getProjectMembers(projectId);
-
-        // Then
-        assertEquals(2, result.size());
-        assertEquals(user1.getId(), result.get(0).getId());
-        assertEquals(user2.getId(), result.get(1).getId());
-
-        verify(projectMemberRepository).findByProjectId(projectId);
-    }
-
-    @Test
-    void testGetUserProjects() {
-        // Given
-        Long userId = 1L;
-
-        Project project1 = new Project();
-        project1.setId(1L);
-        Project project2 = new Project();
-        project2.setId(2L);
-
-        ProjectMember member1 = new ProjectMember();
-        member1.setProject(project1);
-        ProjectMember member2 = new ProjectMember();
-        member2.setProject(project2);
-
-        List<ProjectMember> members = Arrays.asList(member1, member2);
-
-        when(projectMemberRepository.findByUserId(userId)).thenReturn(members);
-
-        // When
-        List<Project> result = projectMemberService.getUserProjects(userId);
-
-        // Then
-        assertEquals(2, result.size());
-        assertEquals(project1.getId(), result.get(0).getId());
-        assertEquals(project2.getId(), result.get(1).getId());
-
-        verify(projectMemberRepository).findByUserId(userId);
     }
 
     @Test

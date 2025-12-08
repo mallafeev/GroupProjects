@@ -2,6 +2,7 @@ package com.example.projectflow;
 
 import com.example.projectflow.model.Project;
 import com.example.projectflow.repository.ProjectRepository;
+import com.example.projectflow.repository.ProjectMemberRepository;
 import com.example.projectflow.service.ProjectMemberService;
 import com.example.projectflow.service.ProjectService;
 import org.junit.jupiter.api.Test;
@@ -31,15 +32,21 @@ class ProjectServiceTest {
     @MockBean
     private ProjectMemberService projectMemberService;
 
+    @MockBean
+    private ProjectMemberRepository projectMemberRepository;
+
     @Test
     void testGetAllProjects() {
         // Given
-        Project project1 = new Project();
-        project1.setId(1L);
-        Project project2 = new Project();
-        project2.setId(2L);
+        Project p1 = new Project();
+        p1.setId(1L);
+        p1.setName("Project 1");
 
-        List<Project> projects = Arrays.asList(project1, project2);
+        Project p2 = new Project();
+        p2.setId(2L);
+        p2.setName("Project 2");
+
+        List<Project> projects = Arrays.asList(p1, p2);
 
         when(projectRepository.findAll()).thenReturn(projects);
 
@@ -48,7 +55,8 @@ class ProjectServiceTest {
 
         // Then
         assertEquals(2, result.size());
-        assertEquals(projects, result);
+        assertEquals("Project 1", result.get(0).getName());
+        assertEquals("Project 2", result.get(1).getName());
 
         verify(projectRepository).findAll();
     }
@@ -57,12 +65,18 @@ class ProjectServiceTest {
     void testGetProjectsByOwnerId() {
         // Given
         Long ownerId = 1L;
-        Project project1 = new Project();
-        project1.setId(1L);
-        Project project2 = new Project();
-        project2.setId(2L);
 
-        List<Project> projects = Arrays.asList(project1, project2);
+        Project p1 = new Project();
+        p1.setId(1L);
+        p1.setName("My Project 1");
+        p1.setOwnerId(ownerId);
+
+        Project p2 = new Project();
+        p2.setId(2L);
+        p2.setName("My Project 2");
+        p2.setOwnerId(ownerId);
+
+        List<Project> projects = Arrays.asList(p1, p2);
 
         when(projectRepository.findByOwnerId(ownerId)).thenReturn(projects);
 
@@ -71,7 +85,8 @@ class ProjectServiceTest {
 
         // Then
         assertEquals(2, result.size());
-        assertEquals(projects, result);
+        assertEquals(ownerId, result.get(0).getOwnerId());
+        assertEquals(ownerId, result.get(1).getOwnerId());
 
         verify(projectRepository).findByOwnerId(ownerId);
     }
@@ -79,7 +94,7 @@ class ProjectServiceTest {
     @Test
     void testCreateProject() {
         // Given
-        String name = "Test Project";
+        String name = "New Project";
         String description = "Test Description";
         Long ownerId = 1L;
 
@@ -104,6 +119,7 @@ class ProjectServiceTest {
         assertEquals(name, result.getName());
         assertEquals(description, result.getDescription());
         assertEquals(ownerId, result.getOwnerId());
+        assertNotNull(result.getId());
 
         verify(projectRepository).save(any(Project.class));
     }
@@ -112,17 +128,20 @@ class ProjectServiceTest {
     void testGetProjectById_Found() {
         // Given
         Long projectId = 1L;
-        Project expectedProject = new Project();
-        expectedProject.setId(projectId);
 
-        when(projectRepository.findById(projectId)).thenReturn(Optional.of(expectedProject));
+        Project expected = new Project();
+        expected.setId(projectId);
+        expected.setName("Test Project");
+        expected.setOwnerId(1L);
+
+        when(projectRepository.findById(projectId)).thenReturn(Optional.of(expected));
 
         // When
         Optional<Project> result = projectService.getProjectById(projectId);
 
         // Then
         assertTrue(result.isPresent());
-        assertEquals(expectedProject.getId(), result.get().getId());
+        assertEquals("Test Project", result.get().getName());
 
         verify(projectRepository).findById(projectId);
     }
@@ -138,7 +157,7 @@ class ProjectServiceTest {
         Optional<Project> result = projectService.getProjectById(projectId);
 
         // Then
-        assertFalse(result.isPresent());
+        assertTrue(result.isEmpty());
 
         verify(projectRepository).findById(projectId);
     }
@@ -148,28 +167,29 @@ class ProjectServiceTest {
         // Given
         Long projectId = 1L;
         String newName = "Updated Name";
-        String newDescription = "Updated Description";
+        String newDesc = "Updated Description";
 
-        Project existingProject = new Project();
-        existingProject.setId(projectId);
-        existingProject.setName("Old Name");
-        existingProject.setDescription("Old Description");
+        Project existing = new Project();
+        existing.setId(projectId);
+        existing.setName("Old Name");
+        existing.setDescription("Old Desc");
+        existing.setOwnerId(1L);
 
-        Project updatedProject = new Project();
-        updatedProject.setId(projectId);
-        updatedProject.setName(newName);
-        updatedProject.setDescription(newDescription);
+        Project updated = new Project();
+        updated.setId(projectId);
+        updated.setName(newName);
+        updated.setDescription(newDesc);
+        updated.setOwnerId(1L);
 
-        when(projectRepository.findById(projectId)).thenReturn(Optional.of(existingProject));
-        when(projectRepository.save(any(Project.class))).thenReturn(updatedProject);
+        when(projectRepository.findById(projectId)).thenReturn(Optional.of(existing));
+        when(projectRepository.save(any(Project.class))).thenReturn(updated);
 
         // When
-        Project result = projectService.updateProject(projectId, newName, newDescription);
+        Project result = projectService.updateProject(projectId, newName, newDesc);
 
         // Then
-        assertNotNull(result);
         assertEquals(newName, result.getName());
-        assertEquals(newDescription, result.getDescription());
+        assertEquals(newDesc, result.getDescription());
 
         verify(projectRepository).findById(projectId);
         verify(projectRepository).save(any(Project.class));
@@ -179,14 +199,12 @@ class ProjectServiceTest {
     void testUpdateProject_NotFound() {
         // Given
         Long projectId = 1L;
-        String newName = "Updated Name";
-        String newDescription = "Updated Description";
 
         when(projectRepository.findById(projectId)).thenReturn(Optional.empty());
 
         // When & Then
         assertThrows(RuntimeException.class, () -> {
-            projectService.updateProject(projectId, newName, newDescription);
+            projectService.updateProject(projectId, "New Name", "New Desc");
         });
 
         verify(projectRepository).findById(projectId);
@@ -202,6 +220,7 @@ class ProjectServiceTest {
         projectService.deleteProject(projectId);
 
         // Then
+        verify(projectMemberRepository).deleteByProjectId(projectId);
         verify(projectRepository).deleteById(projectId);
     }
 
@@ -210,14 +229,15 @@ class ProjectServiceTest {
         // Given
         Long projectId = 1L;
         Long userId = 2L;
+        boolean expected = true;
 
-        when(projectMemberService.isOwner(projectId, userId)).thenReturn(true);
+        when(projectMemberService.isOwner(projectId, userId)).thenReturn(expected);
 
         // When
         boolean result = projectService.isOwner(projectId, userId);
 
         // Then
-        assertTrue(result);
+        assertEquals(expected, result);
 
         verify(projectMemberService).isOwner(projectId, userId);
     }
